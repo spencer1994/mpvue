@@ -128,15 +128,120 @@ function getPage (vm) {
   return page
 }
 
+// fixed by huangliangxing
+function calcDiff (holder, key, newObj, oldObj) {
+  if (newObj === oldObj || newObj === undefined) {
+    return
+  }
+
+  if (newObj == null || oldObj == null || typeof newObj !== typeof oldObj) {
+    holder[key] = newObj
+  } else if (Array.isArray(newObj) && Array.isArray(oldObj)) {
+    if (newObj.length === oldObj.length) {
+      for (let i = 0, len = newObj.length; i < len; ++i) {
+        calcDiff(holder, key + '[' + i + ']', newObj[i], oldObj[i])
+      }
+    } else {
+      holder[key] = newObj
+    }
+  } else if (typeof newObj === 'object' && typeof oldObj === 'object') {
+    const newKeys = Object.keys(newObj)
+    const oldKeys = Object.keys(oldObj)
+
+    if (newKeys.length !== oldKeys.length) {
+      holder[key] = newObj
+    } else {
+      const allKeysSet = Object.create(null)
+      for (let i = 0, len = newKeys.length; i < len; ++i) {
+        allKeysSet[newKeys[i]] = true
+        allKeysSet[oldKeys[i]] = true
+      }
+      if (Object.keys(allKeysSet).length !== newKeys.length) {
+        holder[key] = newObj
+      } else {
+        for (let i = 0, len = newKeys.length; i < len; ++i) {
+          const k = newKeys[i]
+          calcDiff(holder, key + '.' + k, newObj[k], oldObj[k])
+        }
+      }
+    }
+  } else if (newObj !== oldObj) {
+    holder[key] = newObj
+  }
+}
+
+// fixed by huangliangxing
+function diff (newObj, oldObj) {
+  const keys = Object.keys(newObj)
+  const diffResult = {}
+  for (let i = 0, len = keys.length; i < len; ++i) {
+    const k = keys[i]
+    const oldKeyPath = k.split('.')
+    let oldValue = oldObj[oldKeyPath[0]]
+    for (let j = 1, jlen = oldKeyPath.length; j < jlen && oldValue !== undefined; ++j) {
+      oldValue = oldValue[oldKeyPath[j]]
+    }
+    calcDiff(diffResult, k, newObj[k], oldValue)
+  }
+  return diffResult
+}
+
+// fixed by huangliangxing
+function deepClone (target) {
+  if (typeof target !== 'object') return target
+
+  let obj
+  if (!Array.isArray) {
+    Array.isArray = function (arg) {
+      return Object.prototype.toString.call(arg) === '[object Array];'
+    }
+  }
+  if (Array.isArray(target)) {
+    obj = []
+  } else {
+    obj = {}
+  }
+  for (const prop in target) {
+    // obj.hasOwnProperty 判断某个对象是否含有指定的属性
+    // 该方法会忽略掉从原型链上继承的属性
+    if (target.hasOwnProperty(prop)) {
+      if (typeof target === 'object') {
+        obj[prop] = deepClone(target[prop])
+      } else {
+        obj[prop] = target[prop]
+      }
+    }
+  }
+  return obj
+}
+
+// fixed by huangliangxing
+function isEmptyObject (obj) {
+  for (const key in obj) {
+    return false
+  }
+  return true
+}
+
 // 优化每次 setData 都传递大量新数据
 export function updateDataToMP () {
+  // fixed by huangliangxing 对于被销毁的节点，不更新data
+  if (this._isDestroyed) {
+    return
+  }
+
   const page = getPage(this)
   if (!page) {
     return
   }
 
-  const data = formatVmData(this)
-  throttleSetData(page.setData.bind(page), data)
+  // fixed by huangliangxing
+  const data = deepClone(formatVmData(this))
+  // fixed by huangliangxing
+  const diffData = diff(data, page.data)
+  if (!isEmptyObject(diffData)) {
+    throttleSetData(page.setData.bind(page), diffData)
+  }
 }
 
 export function initDataToMP () {
@@ -145,6 +250,10 @@ export function initDataToMP () {
     return
   }
 
-  const data = collectVmData(this.$root)
-  page.setData(data)
+  // fixed by huangliangxing
+  const data = deepClone(collectVmData(this.$root))
+  const diffData = diff(data, page.data)
+  if (!isEmptyObject(diffData)) {
+    page.setData(diffData)
+  }
 }

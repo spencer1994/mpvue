@@ -177,11 +177,11 @@ export function initMP (mpType, next) {
   // if (mp.registered) {
   if (mp.status) {
     // 处理子组件的小程序生命周期
-    if (mpType === 'app') {
-      callHook(this, 'onLaunch', mp.appOptions)
-    } else {
-      callHook(this, 'onLoad', mp.query)
-      callHook(this, 'onReady')
+    if (mpType !== 'app') {
+      // 避免子组件重复执行onLoad fixed by huangliangxing
+      if (!this.$parent) { // 没有$parent表示是最顶级的页面，不是子组件，页面级才执行onLoad，子组件不执行onLoad
+        callHook$1(this, 'onLoad', mp.query)
+      }
     }
     return next()
   }

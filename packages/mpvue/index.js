@@ -4148,7 +4148,7 @@ Object.defineProperty(Vue$3.prototype, '$ssrContext', {
 });
 
 Vue$3.version = '2.4.1';
-Vue$3.mpvueVersion = '1.0.12';
+Vue$3.mpvueVersion = '1.0.13';
 
 /* globals renderer */
 
@@ -4941,7 +4941,7 @@ function patch () {
   this.$updateDataToMP();
 }
 
-function callHook$1 (vm, hook, params) {
+function callHook$1$1 (vm, hook, params) {
   var handlers = vm.$options[hook];
   if (hook === 'onError' && handlers) {
     handlers = [handlers];
@@ -4963,7 +4963,7 @@ function callHook$1 (vm, hook, params) {
 
   // for child
   if (vm.$children.length) {
-    vm.$children.forEach(function (v) { return callHook$1(v, hook, params); });
+    vm.$children.forEach(function (v) { return callHook$1$1(v, hook, params); });
   }
 
   return ret
@@ -5108,11 +5108,11 @@ function initMP (mpType, next) {
   // if (mp.registered) {
   if (mp.status) {
     // 处理子组件的小程序生命周期
-    if (mpType === 'app') {
-      callHook$1(this, 'onLaunch', mp.appOptions);
-    } else {
-      callHook$1(this, 'onLoad', mp.query);
-      callHook$1(this, 'onReady');
+    if (mpType !== 'app') {
+      // 避免子组件重复执行onLoad fixed by huangliangxing
+      if (!this.$parent) { // 没有$parent表示是最顶级的页面，不是子组件，页面级才执行onLoad，子组件不执行onLoad
+        callHook$1(this, 'onLoad', mp.query);
+      }
     }
     return next()
   }
@@ -5139,7 +5139,7 @@ function initMP (mpType, next) {
         mp.app = this;
         mp.status = 'launch';
         this.globalData.appOptions = mp.appOptions = options;
-        callHook$1(rootVueVM, 'onLaunch', options);
+        callHook$1$1(rootVueVM, 'onLaunch', options);
         next();
       },
 
@@ -5149,17 +5149,17 @@ function initMP (mpType, next) {
 
         mp.status = 'show';
         this.globalData.appOptions = mp.appOptions = options;
-        callHook$1(rootVueVM, 'onShow', options);
+        callHook$1$1(rootVueVM, 'onShow', options);
       },
 
       // Do something when app hide.
       onHide: function onHide () {
         mp.status = 'hide';
-        callHook$1(rootVueVM, 'onHide');
+        callHook$1$1(rootVueVM, 'onHide');
       },
 
       onError: function onError (err) {
-        callHook$1(rootVueVM, 'onError', err);
+        callHook$1$1(rootVueVM, 'onError', err);
       }
     });
   } else if (mpType === 'component') {
@@ -5186,13 +5186,13 @@ function initMP (mpType, next) {
       // 组件生命周期函数，在组件实例进入页面节点树时执行
       attached: function attached () {
         mp.status = 'attached';
-        callHook$1(rootVueVM, 'attached');
+        callHook$1$1(rootVueVM, 'attached');
       },
       // 组件生命周期函数，在组件布局完成后执行，此时可以获取节点信息（使用 SelectorQuery ）
       ready: function ready () {
         mp.status = 'ready';
 
-        callHook$1(rootVueVM, 'ready');
+        callHook$1$1(rootVueVM, 'ready');
         next();
 
         // 只有页面需要 setData
@@ -5202,12 +5202,12 @@ function initMP (mpType, next) {
       },
       // 组件生命周期函数，在组件实例被移动到节点树另一个位置时执行
       moved: function moved () {
-        callHook$1(rootVueVM, 'moved');
+        callHook$1$1(rootVueVM, 'moved');
       },
       // 组件生命周期函数，在组件实例被从页面节点树移除时执行
       detached: function detached () {
         mp.status = 'detached';
-        callHook$1(rootVueVM, 'detached');
+        callHook$1$1(rootVueVM, 'detached');
       }
     });
   } else {
@@ -5229,14 +5229,14 @@ function initMP (mpType, next) {
         mp.query = query;
         mp.status = 'load';
         getGlobalData(app, rootVueVM);
-        callHook$1(rootVueVM, 'onLoad', query);
+        callHook$1$1(rootVueVM, 'onLoad', query);
       },
 
       // 生命周期函数--监听页面显示
       onShow: function onShow () {
         mp.page = this;
         mp.status = 'show';
-        callHook$1(rootVueVM, 'onShow');
+        callHook$1$1(rootVueVM, 'onShow');
 
         // 只有页面需要 setData
         rootVueVM.$nextTick(function () {
@@ -5248,46 +5248,46 @@ function initMP (mpType, next) {
       onReady: function onReady () {
         mp.status = 'ready';
 
-        callHook$1(rootVueVM, 'onReady');
+        callHook$1$1(rootVueVM, 'onReady');
         next();
       },
 
       // 生命周期函数--监听页面隐藏
       onHide: function onHide () {
         mp.status = 'hide';
-        callHook$1(rootVueVM, 'onHide');
+        callHook$1$1(rootVueVM, 'onHide');
         mp.page = null;
       },
 
       // 生命周期函数--监听页面卸载
       onUnload: function onUnload () {
         mp.status = 'unload';
-        callHook$1(rootVueVM, 'onUnload');
+        callHook$1$1(rootVueVM, 'onUnload');
         mp.page = null;
       },
 
       // 页面相关事件处理函数--监听用户下拉动作
       onPullDownRefresh: function onPullDownRefresh () {
-        callHook$1(rootVueVM, 'onPullDownRefresh');
+        callHook$1$1(rootVueVM, 'onPullDownRefresh');
       },
 
       // 页面上拉触底事件的处理函数
       onReachBottom: function onReachBottom () {
-        callHook$1(rootVueVM, 'onReachBottom');
+        callHook$1$1(rootVueVM, 'onReachBottom');
       },
 
       // 用户点击右上角分享
       onShareAppMessage: rootVueVM.$options.onShareAppMessage
-        ? function (options) { return callHook$1(rootVueVM, 'onShareAppMessage', options); } : null,
+        ? function (options) { return callHook$1$1(rootVueVM, 'onShareAppMessage', options); } : null,
 
       // Do something when page scroll
       onPageScroll: function onPageScroll (options) {
-        callHook$1(rootVueVM, 'onPageScroll', options);
+        callHook$1$1(rootVueVM, 'onPageScroll', options);
       },
 
       // 当前是 tab 页时，点击 tab 时触发
       onTabItemTap: function onTabItemTap (options) {
-        callHook$1(rootVueVM, 'onTabItemTap', options);
+        callHook$1$1(rootVueVM, 'onTabItemTap', options);
       }
     });
   }
@@ -5429,15 +5429,120 @@ function getPage (vm) {
   return page
 }
 
+// fixed by huangliangxing
+function calcDiff (holder, key, newObj, oldObj) {
+  if (newObj === oldObj || newObj === undefined) {
+    return
+  }
+
+  if (newObj == null || oldObj == null || typeof newObj !== typeof oldObj) {
+    holder[key] = newObj;
+  } else if (Array.isArray(newObj) && Array.isArray(oldObj)) {
+    if (newObj.length === oldObj.length) {
+      for (var i = 0, len = newObj.length; i < len; ++i) {
+        calcDiff(holder, key + '[' + i + ']', newObj[i], oldObj[i]);
+      }
+    } else {
+      holder[key] = newObj;
+    }
+  } else if (typeof newObj === 'object' && typeof oldObj === 'object') {
+    var newKeys = Object.keys(newObj);
+    var oldKeys = Object.keys(oldObj);
+
+    if (newKeys.length !== oldKeys.length) {
+      holder[key] = newObj;
+    } else {
+      var allKeysSet = Object.create(null);
+      for (var i$1 = 0, len$1 = newKeys.length; i$1 < len$1; ++i$1) {
+        allKeysSet[newKeys[i$1]] = true;
+        allKeysSet[oldKeys[i$1]] = true;
+      }
+      if (Object.keys(allKeysSet).length !== newKeys.length) {
+        holder[key] = newObj;
+      } else {
+        for (var i$2 = 0, len$2 = newKeys.length; i$2 < len$2; ++i$2) {
+          var k = newKeys[i$2];
+          calcDiff(holder, key + '.' + k, newObj[k], oldObj[k]);
+        }
+      }
+    }
+  } else if (newObj !== oldObj) {
+    holder[key] = newObj;
+  }
+}
+
+// fixed by huangliangxing
+function diff (newObj, oldObj) {
+  var keys = Object.keys(newObj);
+  var diffResult = {};
+  for (var i = 0, len = keys.length; i < len; ++i) {
+    var k = keys[i];
+    var oldKeyPath = k.split('.');
+    var oldValue = oldObj[oldKeyPath[0]];
+    for (var j = 1, jlen = oldKeyPath.length; j < jlen && oldValue !== undefined; ++j) {
+      oldValue = oldValue[oldKeyPath[j]];
+    }
+    calcDiff(diffResult, k, newObj[k], oldValue);
+  }
+  return diffResult
+}
+
+// fixed by huangliangxing
+function deepClone (target) {
+  if (typeof target !== 'object') { return target }
+
+  var obj;
+  if (!Array.isArray) {
+    Array.isArray = function (arg) {
+      return Object.prototype.toString.call(arg) === '[object Array];'
+    };
+  }
+  if (Array.isArray(target)) {
+    obj = [];
+  } else {
+    obj = {};
+  }
+  for (var prop in target) {
+    // obj.hasOwnProperty 判断某个对象是否含有指定的属性
+    // 该方法会忽略掉从原型链上继承的属性
+    if (target.hasOwnProperty(prop)) {
+      if (typeof target === 'object') {
+        obj[prop] = deepClone(target[prop]);
+      } else {
+        obj[prop] = target[prop];
+      }
+    }
+  }
+  return obj
+}
+
+// fixed by huangliangxing
+function isEmptyObject (obj) {
+  for (var key in obj) {
+    return false
+  }
+  return true
+}
+
 // 优化每次 setData 都传递大量新数据
 function updateDataToMP () {
+  // fixed by huangliangxing 对于被销毁的节点，不更新data
+  if (this._isDestroyed) {
+    return
+  }
+
   var page = getPage(this);
   if (!page) {
     return
   }
 
-  var data = formatVmData(this);
-  throttleSetData(page.setData.bind(page), data);
+  // fixed by huangliangxing
+  var data = deepClone(formatVmData(this));
+  // fixed by huangliangxing
+  var diffData = diff(data, page.data);
+  if (!isEmptyObject(diffData)) {
+    throttleSetData(page.setData.bind(page), diffData);
+  }
 }
 
 function initDataToMP () {
@@ -5446,8 +5551,12 @@ function initDataToMP () {
     return
   }
 
-  var data = collectVmData(this.$root);
-  page.setData(data);
+  // fixed by huangliangxing
+  var data = deepClone(collectVmData(this.$root));
+  var diffData = diff(data, page.data);
+  if (!isEmptyObject(diffData)) {
+    page.setData(diffData);
+  }
 }
 
 function getVM (vm, comkeys) {
