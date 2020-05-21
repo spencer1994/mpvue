@@ -180,7 +180,7 @@ export function initMP (mpType, next) {
     if (mpType !== 'app') {
       // 避免子组件重复执行onLoad fixed by huangliangxing
       if (!this.$parent) { // 没有$parent表示是最顶级的页面，不是子组件，页面级才执行onLoad，子组件不执行onLoad
-        callHook$1(this, 'onLoad', mp.query)
+        callHook(this, 'onLoad', mp.query)
       }
     }
     return next()
